@@ -55,6 +55,9 @@ module Mutations
 
     # Instance methods
     def initialize(*args)
+      # Default status code:
+      @code = 200
+
       @raw_inputs = args.inject({}.with_indifferent_access) do |h, arg|
         raise ArgumentError.new("All arguments must be hashes") unless arg.is_a?(Hash)
         h.merge!(arg)
@@ -62,6 +65,9 @@ module Mutations
 
       # Do field-level validation / filtering:
       @inputs, @errors = self.input_filters.filter(@raw_inputs)
+
+      # Change code if some input params are wrong:
+      @code = 400 if has_errors?
 
       # Run a custom validation method if supplied:
       validate unless has_errors?
@@ -90,7 +96,14 @@ module Mutations
     end
 
     def validation_outcome(result = nil)
-      Outcome.new(!has_errors?, has_errors? ? nil : result, @errors, @inputs)
+      Outcome.new( !has_errors?,
+                    has_errors? ? nil : result,
+                    @errors,
+                    @inputs,
+    # Set 500 to code if some error happens while executing service
+    # and to add_error method code argument was not set
+                    (has_errors? && (@code == 200 || @code.nil?) ? 500 : @code)
+                  )
     end
 
   protected
@@ -109,9 +122,10 @@ module Mutations
     # add_error("colors.foreground", :not_a_color) # => to create errors = {colors: {foreground: :not_a_color}}
     # or, supply a custom message:
     # add_error("name", :too_short, "The name 'blahblahblah' is too short!")
-    def add_error(key, kind, message = nil)
+    def add_error(key, kind, message = nil, code = nil)
       raise ArgumentError.new("Invalid kind") unless kind.is_a?(Symbol)
 
+      @code   = code
       @errors ||= ErrorHash.new
       @errors.tap do |errs|
         path = key.to_s.split(".")
@@ -119,7 +133,7 @@ module Mutations
         inner = path.inject(errs) do |cur_errors,part|
           cur_errors[part.to_sym] ||= ErrorHash.new
         end
-        inner[last] = ErrorAtom.new(key, kind, :message => message)
+        inner[last] = ErrorAtom.new(key, kind, :message => message, :code => code)
       end
     end
 

@@ -63,10 +63,15 @@ module Mutations
     # ErrorAtom.new(:name, :too_short)
     # ErrorAtom.new(:name, :too_short, message: "is too short")
     def initialize(key, error_symbol, options = {})
+      @code = options[:code] || 400
       @key = key
       @symbol = error_symbol
       @message = options[:message]
       @index = options[:index]
+    end
+
+    def code
+      @code
     end
 
     def symbolic
@@ -127,6 +132,28 @@ module Mutations
       end
     end
 
+    # Returns a nested HashWithIndifferentAccess where the values are messages. Eg:
+    # {
+    #   code: 400,
+    #   "errors": {
+    #     "parameter": "email",
+    #     "message": "Email can't be nil"
+    #   }
+    # }
+    def rest_message
+      HashWithIndifferentAccess.new.tap do |hash|
+        hash[:errors] = []
+        each do |k, v|
+          hash[:code]   = v.code
+          hash[:errors].push(
+            { parameter: k,
+              message:   v.message
+            }
+          )
+        end
+      end
+    end
+
     # Returns a flat array where each element is a full sentence. Eg:
     # [
     #   "Email isn't in the right format.",
@@ -150,6 +177,10 @@ module Mutations
 
     def message
       map {|e| e && e.message }
+    end
+
+    def rest_message
+      map {|e| e && e.rest_message }
     end
 
     def message_list
