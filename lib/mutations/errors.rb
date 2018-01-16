@@ -147,6 +147,7 @@ module Mutations
           hash[:code]   = v.code
           hash[:errors].push(
             { parameter: k,
+              detail:    v.symbolic,
               message:   v.message
             }
           )
