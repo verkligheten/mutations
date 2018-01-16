@@ -137,6 +137,7 @@ module Mutations
     #   code: 400,
     #   "errors": {
     #     "parameter": "email",
+    #     "parameter": "nils",
     #     "message": "Email can't be nil"
     #   }
     # }
