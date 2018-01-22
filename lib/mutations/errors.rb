@@ -149,7 +149,7 @@ module Mutations
           hash[:errors].push(
             { parameter: k,
               detail:    v.symbolic,
-              message:   v.message
+              message:   v.message.is_a?(Hash) ? v.message.values.join(", ") : v.message
             }
           )
         end
