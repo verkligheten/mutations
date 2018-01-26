@@ -63,7 +63,7 @@ module Mutations
     # ErrorAtom.new(:name, :too_short)
     # ErrorAtom.new(:name, :too_short, message: "is too short")
     def initialize(key, error_symbol, options = {})
-      @code = options[:code]
+      @code = options[:code] || 400
       @key = key
       @symbol = error_symbol
       @message = options[:message]
