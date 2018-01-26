@@ -102,7 +102,7 @@ module Mutations
                     @inputs,
     # Set 500 to code if some error happens while executing service
     # and to add_error method code argument was not set
-                    (has_errors? && (@code == 200 || @code.nil?) ? 500 : @code)
+                    (has_errors? && @code.nil? ? 500 : @code)
                   )
     end
 
