@@ -97,6 +97,9 @@ module Mutations
   #   }
   # }
   class ErrorHash < Hash
+    def code
+      each {|k, v| return v.code }.compact.first.flatten
+    end
 
     # Returns a nested HashWithIndifferentAccess where the values are symbols.  Eg:
     # {
@@ -141,6 +144,7 @@ module Mutations
     #     "message": "Email can't be nil"
     #   }
     # }
+
     def rest_message
       HashWithIndifferentAccess.new.tap do |hash|
         hash[:errors] = []
@@ -148,10 +152,22 @@ module Mutations
           hash[:code]   = v.code
           hash[:errors].push(
             { parameter: k,
-              detail:    v.symbolic,
-              message:   v.message.is_a?(Hash) ? v.message.values.join(", ") : v.message
+              detail:    v.is_a?(Array) ? v.rest_message : v.symbolic,
+              message:   prepare_message(v.message)
             }
           )
+        end
+      end
+    end
+
+    def prepare_message message
+      if message.is_a? Hash
+        message.values.join(", ")
+      else
+        if message.is_a?(Array)
+          message.compact.uniq.map {|k| k.values}.flatten.join(", ").capitalize
+        else
+          message
         end
       end
     end
@@ -173,6 +189,10 @@ module Mutations
   end
 
   class ErrorArray < Array
+    def code
+      compact.map { |e| e && e.code }.first
+    end
+
     def symbolic
       map {|e| e && e.symbolic }
     end
@@ -182,7 +202,7 @@ module Mutations
     end
 
     def rest_message
-      map {|e| e && e.rest_message }
+      compact.map {|e| e && e.rest_message["errors"] }.flatten
     end
 
     def message_list
